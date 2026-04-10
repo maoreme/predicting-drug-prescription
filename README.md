@@ -68,3 +68,17 @@ The model reinforces earlier findings by highlighting:
 ---
 
 ## Project Structure
+predicting-drug-prescription/
+│
+├── Predicting-Drug-Prescription-Based-on-Patient-Characteristics.Rmd
+├── Predicting-Drug-Prescription-Based-on-Patient-Characteristics.html
+├── data/
+│ └── drug200.csv
+└── README.md
+
+## How to Run
+1. Open the `.Rmd` file in RStudio  
+2. Install required packages if needed:
+   ```r
+   install.packages(c("ggplot2", "dplyr", "rpart", "rpart.plot"))
+3. Knit the file to HTML   
