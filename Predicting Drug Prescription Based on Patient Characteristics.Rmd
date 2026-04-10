@@ -1,0 +1,201 @@
+---
+title: "Predicting Drug Prescription Based on Patient Characteristics"
+author: "Maore Biton"
+date: "`r Sys.Date()`"
+output: html_document
+---
+## Project Overview
+
+- **Goal:** Identify factors influencing drug prescription decisions
+- **Dataset Size:** 200 patients, 6 variables
+- **Tools Used:** R, ggplot2, dplyr
+- **Techniques:** Data cleaning, exploratory data analysis (EDA), visualization
+
+## Background and Assumptions
+
+This analysis is based on the assumption that all drugs in the dataset are prescribed for a similar clinical indication, meaning they belong to the same therapeutic category. While the drugs serve a common purpose, differences in patient characteristics may influence which specific drug is selected.
+
+In particular, some drugs may be more commonly prescribed for certain age groups, while others may be used across a broader range of patients. This analysis explores whether such patterns exist in relation to age and other clinical variables.
+
+It is important to note that the dataset does not explicitly specify the medical condition being treated. Therefore, conclusions are based on observed patterns in the data rather than confirmed clinical guidelines.
+
+## Objective
+The goal of this analysis is to explore how patient characteristics such as age, sex, and sodium-to-potassium ratio (Na_to_K) influence drug prescription patterns.
+We assume that all drugs belong to a similar therapeutic class but may differ in usage across demographic groups.
+
+## Introduction
+
+This project explores how patient characteristics influence prescription decisions across a set of related drugs. The analysis focuses on demographic and clinical variables such as age, sex, blood pressure, cholesterol, and sodium-to-potassium ratio (Na_to_K). The goal is to identify which features are most associated with different drug prescriptions and to evaluate whether these characteristics can be used to predict treatment choice.
+
+## load libraries
+```{r}
+library(ggplot2)
+library(dplyr)
+drug_data <- read.csv("drug200.csv")
+head(drug_data)
+str(drug_data)
+summary(drug_data)
+
+```
+
+## Data Prepapration
+```{r}
+drug_data$Sex <- as.factor(drug_data$Sex)
+drug_data$BP <- as.factor(drug_data$BP)
+drug_data$Cholesterol <- as.factor(drug_data$Cholesterol)
+drug_data$Drug <- as.factor(drug_data$Drug)
+
+str(drug_data)
+```
+
+## Missing Values
+```{r}
+colSums(is.na(drug_data))
+```
+
+## sex Distribution by Drug Type
+```{r, fig.align='center', out.width='100%'}
+ggplot(drug_data, aes(x = Sex, fill = Drug)) +
+  geom_bar(position = "dodge") +
+     geom_text(
+    stat = "count",
+    aes(label = Sex),
+    vjust = -0.5,
+    color = "black"
+  ) +
+  facet_wrap(~ Drug)+
+  theme_minimal() +
+  labs(
+    title = "Sex Distribution by Drug Type",
+    x = "Sex",
+    y = "Count"
+  ) +
+  theme(panel.spacing.y = unit(1, "lines"),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) 
+```
+The distribution of sex across drug types appears relatively balanced, with no strong skew toward either male or female patients within any specific drug category. This suggests that sex is not a primary factor influencing drug prescription in this dataset.
+
+## Age Distribution by Drug Type
+```{r, fig.align='center', out.width='100%'}
+ggplot(drug_data, aes(x = Age, fill = Drug)) +
+  geom_histogram(binwidth = 5, color = "black") +
+  facet_wrap(~ Drug) +
+  theme_minimal() +
+  labs(
+    title = "Age Distribution by Drug Type",
+    x = "Age",
+    y = "Count"
+  ) +
+ theme(legend.position = "none")
+```
+The age distribution varies across different drug types, with each drug showing a distinct pattern in patient age ranges. Some drugs, such as drugY and drugX, are prescribed across a broad spectrum of ages, indicating wider applicability across patient populations. In contrast, other drugs like drugA and drugB appear more concentrated within narrower age ranges, suggesting they may be more commonly used for specific age groups.
+
+Overall, while there is some overlap between drug categories, the differences in distribution suggest that age may play a role in influencing drug selection, though it is likely not the sole determining factor.
+
+
+
+## Age vs Na_to_K Ratio by Drug Type and Sex
+
+```{r, fig.align='center', out.width='100%'}
+ggplot(drug_data, aes(x = Age, y = Na_to_K, color = Sex)) +
+  geom_point(size = 2, alpha = 0.6) +
+  facet_wrap(~ Drug) +
+  theme_minimal() +
+  labs(
+    title = "Age vs Na_to_K Ratio by Drug Type and Sex",
+    x = "Age",
+    y = "Na_to_K Ratio"
+  )
+```
+There is a clear separation in Sodium to Potassium values between Drug X and Drug Y, reinforcing the importance of this variable in differentiating prescription patterns. In contrast, the distribution across sexes remains relatively even, suggesting that sex is not a primary factor in determining drug choice.
+
+
+## Sodium to Potassium Ratio by Drug Type
+```{r, fig.align='center', out.width='100%'}
+ggplot(drug_data, aes(x = Drug, y = Na_to_K, fill = Drug)) +
+  geom_boxplot() + 
+  theme_minimal()+
+  labs(
+    title =  "Sodium-to-Potassium Ratio by Drug Type",
+    x = "Drug Type",
+    y = "Na_to_K Ratio"
+    
+  )
+
+```
+The Sodium to Potassium ratio exhibits strong separation between drug groups, with each drug type occupying a distinct range of values. Compared to other variables, this feature appears to be the most influential in differentiating prescription patterns.
+
+
+## Blood Pressure and Drug Type
+```{r, fig.align='center', out.width='100%'}
+ggplot(drug_data, aes(x = BP, fill = Drug)) +
+  geom_bar(position = "dodge") +
+  theme_minimal() +
+  labs(
+    title = "Drug Type by Blood Pressure Level",
+    x = "Blood Pressure",
+    y = "Count"
+  )
+```
+Drug prescriptions appear to vary significantly across blood pressure categories, indicating that hypertension level plays a meaningful role in treatment selection.
+
+
+## Sodium to Potassium and Blood Pressure Relationship
+```{r, fig.align='center', out.width='100%'}
+  ggplot(drug_data, aes(x = BP, y = Na_to_K, fill = BP)) +
+    geom_boxplot()
+```
+Sodium to Potassium values appear to differ across blood pressure categories. Patients with normal blood pressure tend to have lower Na_to_K values, while both low and high blood pressure groups show relatively higher values. This suggests that the relationship between Na_to_K and blood pressure is not strictly linear and may vary across categories.
+
+## Simple Predictive Model
+```{r}
+model <- glm(Drug ~ Age + Sex + BP + Cholesterol + Na_to_K,
+             data = drug_data,
+             family = "binomial")
+summary(model)
+```
+## Predictive Modeling
+```{r, fig.align='center', out.width='100%'}
+library(rpart)
+library(rpart.plot)
+
+# Train model
+model <- rpart(Drug ~ Age + Sex + BP + Na_to_K, data = drug_data, method = "class")
+
+# Plot tree
+rpart.plot(model)
+```
+The decision tree highlights Na_to_K as a primary splitting variable, reinforcing its importance as a key factor in distinguishing between drug types. Blood pressure also contributes to the decision-making process, supporting earlier observations from the exploratory analysis.
+
+
+## Practical Implications
+
+Understanding which patient characteristics influence drug selection can support clinical decision-making and highlight key biomarkers. In this dataset, the sodium-to-potassium ratio emerges as a potentially important indicator, which could be further explored in predictive modeling or clinical research.
+
+## Key Findings
+
+- The sodium-to-potassium ratio shows a strong separation between drug types, suggesting it is a key factor in prescription decisions.
+- Blood pressure levels appear to influence the choice of medication, with certain drugs associated with specific BP categories.
+- Age and sex show weaker but still noticeable patterns across drug groups.
+
+## Drug X vs Drug Y Insight
+A clear distinction is observed between Drug X and Drug Y in both Na_to_K and blood pressure distributions. While both drugs are prescribed across a similar age range, patients receiving these treatments differ in their clinical profiles. In particular, Drug X and Drug Y are associated with different Na_to_K ranges, and notable differences in blood pressure are also evident.
+
+Additionally, Sodium to Potassium appears to vary across blood pressure categories, with normal BP associated with lower values compared to both low and high BP groups. This suggests that the relationship between Na to K and blood pressure is not strictly linear and may contribute to the observed differences between these two drugs.
+
+Overall, these patterns indicate that clinical variables—particularly Sodium to Potassium and blood pressure—are more influential than age in distinguishing between Drug X and Drug Y, and may warrant further investigation.
+
+## Conclusion
+This analysis demonstrates that patient characteristics can help explain differences in drug prescription patterns. Among the variables examined, the sodium-to-potassium ratio (Na_to_K) shows the clearest separation between drug types, making it the most informative feature in distinguishing prescriptions. Age displays some variation across drug groups, although with noticeable overlap, while sex appears relatively balanced and less influential.
+
+Additionally, a notable difference in blood pressure is observed between patients prescribed Drug X and Drug Y. Given that both drugs are used across a wide age range, this pattern is unlikely to be driven by age alone. This observation may warrant further investigation to better understand the role of blood pressure in influencing treatment decisions.
+Additionally, Sodium to Potassium appears to vary across blood pressure categories, with normal BP associated with lower values compared to both low and high BP groups. This further supports the idea that electrolyte balance may play a role in differentiating patient profiles and prescription patterns.
+
+These findings are further supported by a simple decision tree model, which identifies Na to K and blood pressure as key variables in predicting drug prescriptions.
+
+
+
+
+
+
